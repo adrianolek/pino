@@ -310,7 +310,29 @@ test('redact.remove – top level key in child logger', async ({ is }) => {
   is('key' in o, false)
 })
 
-test('redact.paths preserves original object values after the log write', async ({ is }) => {
+test('redact preserves original object values after the log write when called twice and first call is precensored', async ({ is }) => {
+  const stream = sink()
+  const instance = pino({ redact: ['req.headers.cookie'] }, stream)
+  const obj = {
+    req: {
+      headers: {
+        cookie: 'SESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1;'
+      }
+    }
+  }
+  instance.info({
+    req: {
+      headers: {
+        cookie: '[Redacted]'
+      }
+    }
+  })
+  instance.info(obj)
+  await once(stream, 'data')
+  is(obj.req.headers.cookie, 'SESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1;')
+})
+
+test('redact preserves original object values after the log write', async ({ is }) => {
   const stream = sink()
   const instance = pino({ redact: ['req.headers.cookie'] }, stream)
   const obj = {
